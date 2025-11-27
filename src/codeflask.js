@@ -272,6 +272,41 @@
    }
  
    /**
+    * Paste configuration for Editor.js
+    * 参考 editorjs-codemirror：允许从 <pre> 代码块粘贴生成本工具
+    *
+    * @returns {{tags: string[]}}
+    */
+   static get pasteConfig() {
+     return {
+       tags: ['PRE', 'pre']
+     };
+   }
+ 
+   /**
+    * On paste callback that is fired from Editor.js
+    * 行为参考 editorjs-codemirror：从粘贴的 <pre> 元素取纯文本内容
+    *
+    * @param {Object} event - PasteEvent from Editor.js
+    */
+   onPaste(event) {
+     const content = event.detail && event.detail.data;
+ 
+     if (!content) {
+       return;
+     }
+ 
+     const text = content.textContent || '';
+ 
+     this.data.code = text;
+ 
+     // 如果已经渲染过实例，则同步更新编辑器里的代码
+     if (this.data.editorInstance && typeof this.data.editorInstance.updateCode === 'function') {
+       this.data.editorInstance.updateCode(this.data.code);
+     }
+   }
+ 
+   /**
     * Returns true to notify the core that read-only mode is supported
     *
     * @return {boolean}
