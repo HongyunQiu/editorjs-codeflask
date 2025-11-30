@@ -47,6 +47,20 @@ It was built to be an improvement on :
 
 ---
 
+## 编译与本地开发
+
+在本仓库根目录下的 `PlugIns/editorjs-codeflask` 目录中执行：
+
+```bash
+npm install
+npm run build
+```
+
+构建完成后，将在 `dist/editorjs-codeflask.bundle.js` 中生成可直接在浏览器或主工程中引入的 UMD 包（见 `package.json` 中的 `main` 字段）。
+
+
+---
+
 ## Installation / use
 
 ```javascript
