@@ -34,8 +34,6 @@
 
   import CodeFlask from 'codeflask';
 
-  import NiceSelect from "nice-select2/dist/js/nice-select2";
-  import NiceSelectStyle from "nice-select2/dist/css/nice-select2.css";
 
 
 
@@ -72,6 +70,14 @@
     //  console.log(data)
      this.api = api;
      this.readOnly = readOnly;
+
+     // Language chooser UI (仅编辑模式使用)
+     this._langBtn = null;
+     this._langChooserEl = null;
+     this._langChooserSearchEl = null;
+     this._langChooserListEl = null;
+     this._removeLangChooserListeners = null;
+     this._availableLanguages = null;
  
      this._CSS = {
        block: this.api.styles.block,
@@ -137,13 +143,15 @@
     this._element.classList.add('editorjs-codeFlask_Wrapper')
     let editorElem = document.createElement('div');
     editorElem.classList.add('editorjs-codeFlask_Editor')
-    let langdisplay = document.createElement('div');
-    langdisplay.classList.add('editorjs-codeFlask_LangDisplay')
-
-    langdisplay.innerHTML = this.data.language
-
     this._element.appendChild(editorElem)
-    this._element.appendChild(langdisplay)
+
+   // 编辑模式：在 block 右上角提供语言选择按钮 + 弹层
+   // 只读模式：不显示语言控件
+   if (!this.readOnly) {
+     this._element.appendChild(this._buildLangChooser());
+     this._element.appendChild(this._buildLangButton());
+     this._installLangChooserCloseHandlers();
+   }
 
     this.data.editorInstance = new CodeFlask(editorElem, { 
       language: this.data.language, 
@@ -158,7 +166,11 @@
 
     });
 
-    this.data.editorInstance.addLanguage(this.data.language, Prism.languages[this.data.language]);
+    try {
+      if (Prism.languages && Prism.languages[this.data.language]) {
+        this.data.editorInstance.addLanguage(this.data.language, Prism.languages[this.data.language]);
+      }
+    } catch (_) {}
     this.data.editorInstance.updateCode(this.data.code);
 
     return this._element
@@ -166,6 +178,7 @@
 
   _updateEditorHeight(length){
 
+    // 语言按钮为覆盖层，不应占用额外高度
     let _height = (length * 21) + 10
     if (_height < 60){ _height = 60 }
 
@@ -183,58 +196,7 @@
 
    renderSettings() {
     const settingsContainer = document.createElement('div');
-
-
-
-
-    let languagesSelect = document.createElement("select");
-    languagesSelect.classList.add("small");
-
-    //sort available languages alphabetically (ignore case)
-    let languages = Object.keys(Prism.languages).sort(function (a, b) {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-
-    //Create and append the options
-    for (var i = 0; i < languages.length; i++) {
-        // Weirdly PrismJS doesnt expose a list of installed languages, or rather it does, but it is mixed with helper functions, which i have to clear here.
-        if (languages[i] == "extend" || languages[i] == "insertBefore" || languages[i] == "DFS") {
-          continue;
-        }
-
-        var option = document.createElement("option");
-        option.value = languages[i];
-        option.text = languages[i];
-        if(languages[i] == this.data.language){
-          option.selected="selected"
-        }
-        languagesSelect.appendChild(option);
-    }
-
-    languagesSelect.addEventListener('change', (event) => {
-      this._updateLanguage(event.target.value)
-    });
-
-
-    // Disabled until codeflask supports toggle of line numbers
-    // const settingsButton = document.createElement('div');
-    // settingsButton.classList.add(this._CSS.settingsButton);
-    // settingsButton.innerHTML = '<small>123</small>'
-
-
-    // settingsButton.addEventListener('click', (e) => {
-    //   console.log(e)
-    //   e.target.classList.toggle(this._CSS.settingsButtonActive)
-    //   this._toggleLineNumbers()
-    // });
-
-
-
-    settingsContainer.appendChild(languagesSelect);
-    new NiceSelect(languagesSelect, {searchable : true, placeholder : "Language..."});
-    
-    // settingsContainer.appendChild(settingsButton);
-
+    // 需求：Language 不在工具 settings 里展示
     return settingsContainer;
   }
 
@@ -249,8 +211,183 @@
 
   _updateLanguage = (lang) => {
     this.data.language = lang
-    this._element.querySelector('.editorjs-codeFlask_LangDisplay').innerHTML = this.data.language
+
+    if (this._langBtn) {
+      this._langBtn.textContent = this.data.language;
+      this._langBtn.title = `Language: ${this.data.language}`;
+    }
+
+    // codeflask 的语法高亮依赖 Prism 的 grammar；切换时补充注册
+    try {
+      if (Prism.languages && Prism.languages[this.data.language]) {
+        this.data.editorInstance.addLanguage(this.data.language, Prism.languages[this.data.language]);
+      }
+    } catch (_) {}
+
     this.data.editorInstance.updateLanguage(this.data.language)
+  }
+
+  _getAvailableLanguages = () => {
+    if (this._availableLanguages) return this._availableLanguages;
+
+    const ignore = new Set(["extend", "insertBefore", "DFS"]);
+    const raw = Object.keys(Prism.languages || {})
+      .filter((k) => !ignore.has(k))
+      // Prism.languages 里会混入少量非 grammar 值，这里尽量过滤掉
+      .filter((k) => {
+        const v = Prism.languages[k];
+        if (!v) return false;
+        if (typeof v === "object") return true;
+        // 少数情况下 grammar 可能被导出成 function（兼容处理）
+        if (typeof v === "function") return true;
+        return false;
+      });
+
+    raw.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    this._availableLanguages = raw;
+    return this._availableLanguages;
+  }
+
+  _buildLangButton = () => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.classList.add('editorjs-codeFlask_LangBtn');
+    btn.textContent = this.data.language;
+    btn.title = `Language: ${this.data.language}`;
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._toggleLangChooser();
+    });
+
+    this._langBtn = btn;
+    return btn;
+  }
+
+  _buildLangChooser = () => {
+    const chooser = document.createElement('div');
+    chooser.classList.add('editorjs-codeFlask_Chooser');
+
+    const searchWrap = document.createElement('div');
+    searchWrap.classList.add('editorjs-codeFlask_ChooserSearchWrap');
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.classList.add('editorjs-codeFlask_ChooserSearch');
+    search.placeholder = '搜索语言...';
+    search.addEventListener('input', () => this._renderLangChooserList());
+    searchWrap.appendChild(search);
+
+    const list = document.createElement('div');
+    list.classList.add('editorjs-codeFlask_ChooserList');
+    chooser.appendChild(searchWrap);
+    chooser.appendChild(list);
+
+    this._langChooserEl = chooser;
+    this._langChooserSearchEl = search;
+    this._langChooserListEl = list;
+
+    // 初次渲染
+    this._renderLangChooserList();
+
+    return chooser;
+  }
+
+  _renderLangChooserList = () => {
+    if (!this._langChooserListEl) return;
+    const q = (this._langChooserSearchEl && this._langChooserSearchEl.value ? this._langChooserSearchEl.value : '').trim().toLowerCase();
+    const langs = this._getAvailableLanguages();
+    const selected = this.data.language;
+
+    this._langChooserListEl.innerHTML = '';
+
+    const makeItem = (lang) => {
+      const item = document.createElement('div');
+      item.classList.add('editorjs-codeFlask_ChooserItem');
+      item.textContent = lang;
+      if (lang === selected) item.classList.add('is-selected');
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._updateLanguage(lang);
+        this._closeLangChooser();
+      });
+      return item;
+    };
+
+    let count = 0;
+    for (let i = 0; i < langs.length; i++) {
+      const lang = langs[i];
+      if (q && !lang.toLowerCase().includes(q)) continue;
+      this._langChooserListEl.appendChild(makeItem(lang));
+      count++;
+    }
+
+    if (count === 0) {
+      const empty = document.createElement('div');
+      empty.classList.add('editorjs-codeFlask_ChooserEmpty');
+      empty.textContent = '无匹配语言';
+      this._langChooserListEl.appendChild(empty);
+    }
+  }
+
+  _toggleLangChooser = () => {
+    if (!this._langChooserEl || !this._langBtn) return;
+    const isOpen = this._langChooserEl.classList.contains('is-open');
+    if (isOpen) {
+      this._closeLangChooser();
+      return;
+    }
+
+    // 定位到按钮下方
+    try {
+      const btnRect = this._langBtn.getBoundingClientRect();
+      const wrapRect = this._element.getBoundingClientRect();
+      const top = Math.max(0, Math.round(btnRect.bottom - wrapRect.top + 6));
+      this._langChooserEl.style.top = `${top}px`;
+    } catch (_) {
+      this._langChooserEl.style.top = '';
+    }
+
+    this._langChooserEl.classList.add('is-open');
+    if (this._langChooserSearchEl) {
+      this._langChooserSearchEl.value = '';
+      this._renderLangChooserList();
+      // 聚焦以便立刻输入搜索
+      try { this._langChooserSearchEl.focus(); } catch (_) {}
+    }
+  }
+
+  _closeLangChooser = () => {
+    if (!this._langChooserEl) return;
+    this._langChooserEl.classList.remove('is-open');
+  }
+
+  _installLangChooserCloseHandlers = () => {
+    if (this._removeLangChooserListeners) {
+      this._removeLangChooserListeners();
+      this._removeLangChooserListeners = null;
+    }
+
+    const onDocPointerDown = (e) => {
+      if (!this._langChooserEl || !this._langBtn) return;
+      if (!this._langChooserEl.classList.contains('is-open')) return;
+
+      const t = e.target;
+      if (!t) return;
+
+      // 点击弹层内/按钮上：不关闭
+      if (this._langChooserEl.contains(t)) return;
+      if (this._langBtn.contains(t)) return;
+
+      // 点击块内/块外其他区域：关闭
+      this._closeLangChooser();
+    };
+
+    document.addEventListener('pointerdown', onDocPointerDown);
+    this._removeLangChooserListeners = () => {
+      document.removeEventListener('pointerdown', onDocPointerDown);
+    };
   }
  
 
@@ -326,6 +463,13 @@
        icon: icon,
        title: 'CodeFlask'
      };
+   }
+
+   destroy() {
+     if (this._removeLangChooserListeners) {
+       this._removeLangChooserListeners();
+       this._removeLangChooserListeners = null;
+     }
    }
  }
  
