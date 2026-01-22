@@ -2,9 +2,9 @@
 
 	height: 200px;
     position: relative;
-	border: 1px solid #dcdfe6;
+	border: 1px solid var(--border, #dcdfe6);
 	border-radius: 5px;
-	background-color: #f0f2f5;
+	background-color: var(--qnotes-code-wrapper-bg, #f0f2f5);
     margin-bottom: 10px;
 }
 
@@ -30,6 +30,95 @@
 	z-index: 0 !important;
 }
 
+/* ---- Code area theme (variable-driven) ---- */
+.editorjs-codeFlask_Wrapper {
+	/* 基础颜色（浅色 fallback），QNotes 深色模式会通过 :root 变量自动切换 */
+	/* 浅色：贴近 CodeFlask 默认主题（比 GitHub Light 更“亮/跳”一些） */
+	--qnotes-code-wrapper-bg: #6e7f98;
+	--qnotes-code-bg: #c7c9d7;
+	--qnotes-code-fg: #4f559c;
+	--qnotes-code-muted: #999999;
+
+	/* 浅色 token：恢复到 CodeFlask 默认主题（theme-default 的视觉风格） */
+	--qnotes-code-token-comment: #9badb7;
+	--qnotes-code-token-punctuation: #4a4a4a;
+	--qnotes-code-token-operator: #ff5598;
+	--qnotes-code-token-keyword: #8500ff;
+	--qnotes-code-token-string: #41ad8f;
+	--qnotes-code-token-number: #8500ff;
+	--qnotes-code-token-function: #8500ff;
+	--qnotes-code-token-classname: #8500ff;
+	--qnotes-code-token-constant: #8500ff;
+	--qnotes-code-token-tag: #8500ff;
+	--qnotes-code-token-attr-name: #8500ff;
+	--qnotes-code-token-attr-value: #8500ff;
+
+	--qnotes-code-line-highlight: rgba(0, 0, 0, 0.1);
+	--qnotes-code-gutter-bg: #eeeeee;
+}
+
+@media (prefers-color-scheme: dark) {
+	.editorjs-codeFlask_Wrapper {
+		/* 深色下整体背景/前景跟随 QNotes */
+		--qnotes-code-wrapper-bg: var(--surface, #1b1c1f);
+		--qnotes-code-bg: var(--surface, #1b1c1f);
+		--qnotes-code-fg: var(--text, #e9e9eb);
+		--qnotes-code-muted: var(--text-muted, #a1a1aa);
+
+		/* VSCode Dark+ 近似 token 颜色 */
+		--qnotes-code-token-comment: #6A9955;
+		--qnotes-code-token-punctuation: #D4D4D4;
+		--qnotes-code-token-operator: #D4D4D4;
+		--qnotes-code-token-keyword: #569CD6;
+		--qnotes-code-token-string: #CE9178;
+		--qnotes-code-token-number: #B5CEA8;
+		--qnotes-code-token-function: #DCDCAA;
+		--qnotes-code-token-classname: #4EC9B0;
+		--qnotes-code-token-constant: #9CDCFE;
+		--qnotes-code-token-tag: #569CD6;
+		--qnotes-code-token-attr-name: #9CDCFE;
+		--qnotes-code-token-attr-value: #CE9178;
+
+		--qnotes-code-line-highlight: rgba(255, 255, 255, 0.06);
+		--qnotes-code-gutter-bg: rgba(255, 255, 255, 0.04);
+	}
+}
+
+.editorjs-codeFlask_Wrapper .codeflask {
+	background: var(--qnotes-code-bg);
+	color: var(--qnotes-code-fg);
+}
+
+.editorjs-codeFlask_Wrapper .codeflask__textarea {
+	color: var(--qnotes-code-fg);
+	caret-color: var(--qnotes-code-fg);
+}
+
+.editorjs-codeFlask_Wrapper .codeflask__lines {
+	color: var(--qnotes-code-muted);
+}
+
+.editorjs-codeFlask_Wrapper .codeflask__line-highlight {
+	background: var(--qnotes-code-line-highlight);
+}
+
+.editorjs-codeFlask_Wrapper .codeflask.codeflask--has-line-numbers:before{
+	background-color: var(--qnotes-code-gutter-bg);
+}
+
+/* Prism tokens (scoped) */
+.editorjs-codeFlask_Wrapper .codeflask .token.comment { color: var(--qnotes-code-token-comment); }
+.editorjs-codeFlask_Wrapper .codeflask .token.punctuation { color: var(--qnotes-code-token-punctuation); }
+.editorjs-codeFlask_Wrapper .codeflask .token.operator { color: var(--qnotes-code-token-operator); }
+.editorjs-codeFlask_Wrapper .codeflask .token.keyword { color: var(--qnotes-code-token-keyword); }
+.editorjs-codeFlask_Wrapper .codeflask .token.string { color: var(--qnotes-code-token-string); }
+.editorjs-codeFlask_Wrapper .codeflask .token.number { color: var(--qnotes-code-token-number); }
+.editorjs-codeFlask_Wrapper .codeflask .token.function { color: var(--qnotes-code-token-function); }
+.editorjs-codeFlask_Wrapper .codeflask .token.class-name { color: var(--qnotes-code-token-classname); }
+.editorjs-codeFlask_Wrapper .codeflask .token.constant { color: var(--qnotes-code-token-constant); }
+.editorjs-codeFlask_Wrapper .codeflask .token.tag { color: var(--qnotes-code-token-tag); }
+.editorjs-codeFlask_Wrapper .codeflask .token.attr-name { color: var(--qnotes-code-token-attr-name); }
+.editorjs-codeFlask_Wrapper .codeflask .token.attr-value { color: var(--qnotes-code-token-attr-value); }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_LangBtn {
 	position: absolute;
@@ -38,9 +127,13 @@
 	height: 20px;
 	line-height: 18px;
 	font-size: 11px;
-	color: #475569;
-	background-color: rgba(220, 223, 230, 0.95);
-	border: 1px solid rgba(148, 163, 184, 0.7);
+	color: var(--text, #475569);
+	/* fallback (no color-mix support) */
+	background-color: var(--control-bg, rgba(220, 223, 230, 0.95));
+	border: 1px solid var(--border, rgba(148, 163, 184, 0.7));
+	/* enhanced (supported browsers) */
+	background-color: color-mix(in srgb, var(--control-bg, rgba(220, 223, 230, 0.95)) 92%, transparent);
+	border-color: color-mix(in srgb, var(--border, rgba(148, 163, 184, 0.7)) 70%, transparent);
 	border-radius: 999px;
 	padding: 0 10px;
 	cursor: pointer;
@@ -50,8 +143,8 @@
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_LangBtn:hover {
-	background-color: rgba(220, 223, 230, 1);
-	border-color: rgba(100, 116, 139, 0.8);
+	background-color: var(--control-bg-hover, rgba(220, 223, 230, 1));
+	border-color: var(--border, rgba(100, 116, 139, 0.8));
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_Chooser {
@@ -60,10 +153,10 @@
 	top: 28px;
 	width: 260px;
 	max-width: calc(100% - 12px);
-	background: #ffffff;
-	border: 1px solid rgba(148, 163, 184, 0.55);
+	background: var(--surface, #ffffff);
+	border: 1px solid var(--border, rgba(148, 163, 184, 0.55));
 	border-radius: 10px;
-	box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 	display: none;
 	/* 允许弹层跨 block 显示（压过后续 block），但仍应低于 Editor.js 的工具条/菜单 */
 	z-index: 40;
@@ -79,13 +172,16 @@
 	align-items: center;
 	gap: 8px;
 	padding: 8px 10px;
-	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+	/* fallback */
+	border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+	/* enhanced */
+	border-bottom-color: color-mix(in srgb, var(--border, rgba(15, 23, 42, 0.08)) 70%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserTitle {
 	font-size: 12px;
 	font-weight: 600;
-	color: #0f172a;
+	color: var(--text, #0f172a);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserSpacer {
@@ -95,7 +191,7 @@
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserClose {
 	border: none;
 	background: transparent;
-	color: #64748b;
+	color: var(--text-muted, #64748b);
 	font-size: 16px;
 	line-height: 16px;
 	cursor: pointer;
@@ -104,7 +200,10 @@
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserSearchWrap {
 	padding: 8px 10px;
-	border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+	/* fallback */
+	border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.06));
+	/* enhanced */
+	border-bottom-color: color-mix(in srgb, var(--border, rgba(15, 23, 42, 0.06)) 60%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserSearch {
@@ -112,15 +211,21 @@
 	height: 28px;
 	line-height: 28px;
 	border-radius: 8px;
-	border: 1px solid rgba(148, 163, 184, 0.55);
+	border: 1px solid var(--border, rgba(148, 163, 184, 0.55));
+	background: var(--surface-muted, #ffffff);
+	color: var(--text, #0f172a);
 	padding: 0 10px;
 	outline: none;
 	font-size: 12px;
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserSearch:focus {
-	border-color: rgba(2, 132, 199, 0.8);
-	box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+	/* fallback */
+	border-color: var(--primary, rgba(2, 132, 199, 0.8));
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+	/* enhanced */
+	border-color: color-mix(in srgb, var(--primary, rgba(2, 132, 199, 0.8)) 75%, transparent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, rgba(2, 132, 199, 0.18)) 22%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserList {
@@ -134,25 +239,27 @@
 	border-radius: 8px;
 	cursor: pointer;
 	font-size: 12px;
-	color: #0f172a;
+	color: var(--text, #0f172a);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserItem:hover {
-	background: rgba(2, 132, 199, 0.08);
+	/* fallback */
+	background: rgba(59, 130, 246, 0.08);
+	/* enhanced */
+	background: color-mix(in srgb, var(--primary, rgba(2, 132, 199, 0.08)) 12%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserItem.is-selected {
-	background: rgba(2, 132, 199, 0.14);
-	color: #075985;
+	/* fallback */
+	background: rgba(59, 130, 246, 0.14);
+	/* enhanced */
+	background: color-mix(in srgb, var(--primary, rgba(2, 132, 199, 0.14)) 18%, transparent);
+	color: var(--primary, #075985);
 	font-weight: 600;
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_ChooserEmpty {
 	padding: 10px 10px;
-	color: #64748b;
+	color: var(--text-muted, #64748b);
 	font-size: 12px;
-}
-
-.editorjs-codeFlask_Wrapper .codeflask.codeflask--has-line-numbers:before{
-    background-color: #dcdfe6;
 }

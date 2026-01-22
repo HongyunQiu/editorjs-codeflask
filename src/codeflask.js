@@ -156,7 +156,9 @@
     this.data.editorInstance = new CodeFlask(editorElem, { 
       language: this.data.language, 
       lineNumbers : this.data.showlinenumbers,
-      readonly : this.readOnly
+      readonly : this.readOnly,
+      // 由宿主（QNotes）CSS 变量控制主题；避免 CodeFlask 注入默认浅色 token 主题
+      defaultTheme: false
     });
 
     this.data.editorInstance.onUpdate((code) => {
