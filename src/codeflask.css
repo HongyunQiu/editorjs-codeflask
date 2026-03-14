@@ -8,6 +8,27 @@
     margin-bottom: 10px;
 }
 
+/* Copy highlight flash (参考 editorjs-table)
+   注意：CodeFlask 的不透明背景在 .codeflask 上，不能用 wrapper::before，否则会被盖住 */
+.editorjs-codeFlask_Wrapper--copy-highlight .codeflask {
+	animation: codeflaskCopyFlash 1500ms ease-out both;
+}
+
+@keyframes codeflaskCopyFlash {
+	0% {
+		background: linear-gradient(rgba(59, 130, 246, 0), rgba(59, 130, 246, 0)), var(--qnotes-code-bg);
+		box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0);
+	}
+	18% {
+		background: linear-gradient(rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.12)), var(--qnotes-code-bg);
+		box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.34);
+	}
+	100% {
+		background: linear-gradient(rgba(59, 130, 246, 0), rgba(59, 130, 246, 0)), var(--qnotes-code-bg);
+		box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0);
+	}
+}
+
 .editorjs-codeFlask_Wrapper .codeflask {
 	border-radius: 5px;
 	background: none;
@@ -16,7 +37,19 @@
 /* 语言按钮为覆盖层：给代码区留出右侧空间，避免遮挡首行内容 */
 .editorjs-codeFlask_Wrapper .codeflask textarea,
 .editorjs-codeFlask_Wrapper .codeflask pre {
-	padding-right: 90px !important;
+	padding-right: 160px !important;
+}
+
+/* 右上角控制区（语言 + COPY） */
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_TopRightControls {
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	/* 需要压过后续 block，但仍应低于 Editor.js 的工具条/菜单 */
+	z-index: 30;
 }
 
 /* 修复 Editor.js Block 菜单被代码/行号盖住的问题：
@@ -121,9 +154,6 @@
 .editorjs-codeFlask_Wrapper .codeflask .token.attr-value { color: var(--qnotes-code-token-attr-value); }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_LangBtn {
-	position: absolute;
-	top: 4px;
-	right: 6px;
 	height: 20px;
 	line-height: 18px;
 	font-size: 11px;
@@ -138,13 +168,49 @@
 	padding: 0 10px;
 	cursor: pointer;
 	user-select: none;
-	/* 需要压过后续 block，但仍应低于 Editor.js 的工具条/菜单 */
-	z-index: 30;
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_LangBtn:hover {
 	background-color: var(--control-bg-hover, rgba(220, 223, 230, 1));
 	border-color: var(--border, rgba(100, 116, 139, 0.8));
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_CopyBtn {
+	height: 20px;
+	width: 28px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 0;
+	font-size: 11px;
+	color: var(--text, #475569);
+	/* fallback (no color-mix support) */
+	background-color: var(--control-bg, rgba(220, 223, 230, 0.95));
+	border: 1px solid var(--border, rgba(148, 163, 184, 0.7));
+	/* enhanced (supported browsers) */
+	background-color: color-mix(in srgb, var(--control-bg, rgba(220, 223, 230, 0.95)) 92%, transparent);
+	border-color: color-mix(in srgb, var(--border, rgba(148, 163, 184, 0.7)) 70%, transparent);
+	border-radius: 999px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_CopyBtn svg {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	pointer-events: none;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_CopyBtn:hover {
+	background-color: var(--control-bg-hover, rgba(220, 223, 230, 1));
+	border-color: var(--border, rgba(100, 116, 139, 0.8));
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_CopyBtn[data-copy-state="failed"] {
+	border-color: color-mix(in srgb, #dc2626 70%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_Chooser {

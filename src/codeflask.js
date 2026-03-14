@@ -22,6 +22,7 @@
   import icon from './codeflask.svg';
 
   import Prism from 'prismjs';
+  import { IconClipboard } from '@codexteam/icons';
 
   // import "prismjs-components-importer/esm"; // ALL - Massivly Increases Bundle size!
 
@@ -33,6 +34,8 @@
  
 
   import CodeFlask from 'codeflask';
+
+  const ICON_CHECK = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/></svg>';
 
 
 
@@ -73,6 +76,9 @@
 
      // Language chooser UI (仅编辑模式使用)
      this._langBtn = null;
+     this._copyBtn = null;
+     this._topRightControlsEl = null;
+     this._copyHighlightTimer = null;
      this._langChooserEl = null;
      this._langChooserSearchEl = null;
      this._langChooserListEl = null;
@@ -145,13 +151,13 @@
     editorElem.classList.add('editorjs-codeFlask_Editor')
     this._element.appendChild(editorElem)
 
-   // 编辑模式：在 block 右上角提供语言选择按钮 + 弹层
-   // 只读模式：不显示语言控件
+   // 编辑模式：右上角显示语言选择 + COPY
+   // 只读模式：右上角只显示 COPY（仍可复制）
    if (!this.readOnly) {
      this._element.appendChild(this._buildLangChooser());
-     this._element.appendChild(this._buildLangButton());
      this._installLangChooserCloseHandlers();
    }
+   this._element.appendChild(this._buildTopRightControls({ showLang: !this.readOnly }));
 
     this.data.editorInstance = new CodeFlask(editorElem, { 
       language: this.data.language, 
@@ -265,6 +271,109 @@
 
     this._langBtn = btn;
     return btn;
+  }
+
+  _buildCopyButton = () => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.classList.add('editorjs-codeFlask_CopyBtn');
+    btn.innerHTML = IconClipboard;
+    btn.title = '复制代码';
+    btn.setAttribute('aria-label', '复制代码');
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await this._copyToClipboard(btn);
+    });
+
+    this._copyBtn = btn;
+    return btn;
+  }
+
+  _buildTopRightControls = ({ showLang = true } = {}) => {
+    const wrap = document.createElement('div');
+    wrap.classList.add('editorjs-codeFlask_TopRightControls');
+    if (showLang) wrap.appendChild(this._buildLangButton());
+    wrap.appendChild(this._buildCopyButton());
+    this._topRightControlsEl = wrap;
+    return wrap;
+  }
+
+  _copyToClipboard = async (btnEl) => {
+    const code = (this.data && this.data.editorInstance && typeof this.data.editorInstance.getCode === 'function')
+      ? this.data.editorInstance.getCode()
+      : (this.data && this.data.code ? this.data.code : '');
+
+    const ok = await this._writeClipboardText(code);
+    this._flashCopyResult(btnEl, ok);
+  }
+
+  _writeClipboardText = async (text) => {
+    const t = (text === undefined || text === null) ? '' : String(text);
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(t);
+        return true;
+      }
+    } catch (_) {}
+
+    // fallback: execCommand('copy')
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = t;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.left = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _flashCopyResult = (btnEl, ok) => {
+    if (!btnEl) return;
+    const original = btnEl.innerHTML;
+    btnEl.innerHTML = ok ? ICON_CHECK : IconClipboard;
+    btnEl.setAttribute('data-copy-state', ok ? 'copied' : 'failed');
+
+    if (ok) {
+      this._flashCopyHighlight();
+    }
+
+    window.clearTimeout(btnEl.__qnotesCopyTimer);
+    btnEl.__qnotesCopyTimer = window.setTimeout(() => {
+      btnEl.innerHTML = original || IconClipboard;
+      btnEl.removeAttribute('data-copy-state');
+    }, 1200);
+  }
+
+  _flashCopyHighlight = () => {
+    if (!this._element) return;
+
+    if (this._copyHighlightTimer) {
+      try { window.clearTimeout(this._copyHighlightTimer); } catch (_) {}
+      this._copyHighlightTimer = null;
+    }
+
+    const cls = 'editorjs-codeFlask_Wrapper--copy-highlight';
+    this._element.classList.remove(cls);
+
+    window.requestAnimationFrame(() => {
+      this._element.classList.add(cls);
+      this._copyHighlightTimer = window.setTimeout(() => {
+        if (this._element) this._element.classList.remove(cls);
+        this._copyHighlightTimer = null;
+      }, 1500);
+    });
   }
 
   _buildLangChooser = () => {
@@ -468,6 +577,14 @@
    }
 
    destroy() {
+    if (this._copyBtn && this._copyBtn.__qnotesCopyTimer) {
+      try { window.clearTimeout(this._copyBtn.__qnotesCopyTimer); } catch (_) {}
+      this._copyBtn.__qnotesCopyTimer = null;
+    }
+    if (this._copyHighlightTimer) {
+      try { window.clearTimeout(this._copyHighlightTimer); } catch (_) {}
+      this._copyHighlightTimer = null;
+    }
      if (this._removeLangChooserListeners) {
        this._removeLangChooserListeners();
        this._removeLangChooserListeners = null;
