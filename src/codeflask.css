@@ -34,6 +34,89 @@
 	background: none;
 }
 
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview {
+	display: none;
+	box-sizing: border-box;
+	height: 100%;
+	overflow: auto;
+	padding: 36px 16px 16px;
+	color: var(--qnotes-code-fg);
+	background: var(--qnotes-code-bg);
+	border-radius: 5px;
+}
+
+.editorjs-codeFlask_Wrapper--markdown-view .editorjs-codeFlask_MarkdownPreview {
+	display: block;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview > :first-child {
+	margin-top: 0;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview > :last-child {
+	margin-bottom: 0;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h1,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h2,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h3,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h4,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h5,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview h6 {
+	margin: 1.1em 0 0.55em;
+	line-height: 1.3;
+	color: var(--qnotes-code-fg);
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview p,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview ul,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview ol,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview blockquote,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview table {
+	margin: 0 0 0.9em;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview a {
+	color: var(--primary, #2563eb);
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview blockquote {
+	margin-left: 0;
+	padding-left: 12px;
+	border-left: 3px solid color-mix(in srgb, var(--border, rgba(148, 163, 184, 0.6)) 70%, transparent);
+	color: var(--qnotes-code-muted);
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview code {
+	font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+	font-size: 0.92em;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview :not(pre) > code {
+	padding: 0.12em 0.35em;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--qnotes-code-gutter-bg) 70%, transparent);
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownCode,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownFallback {
+	margin: 0 0 1em;
+	padding: 12px;
+	overflow: auto;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--qnotes-code-wrapper-bg) 42%, var(--qnotes-code-bg));
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownNotice,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownEmpty {
+	margin-bottom: 12px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	font-size: 12px;
+	color: var(--qnotes-code-muted);
+	background: color-mix(in srgb, var(--qnotes-code-gutter-bg) 65%, transparent);
+}
+
 /* 语言按钮为覆盖层：给代码区留出右侧空间，避免遮挡首行内容 */
 .editorjs-codeFlask_Wrapper .codeflask textarea,
 .editorjs-codeFlask_Wrapper .codeflask pre {

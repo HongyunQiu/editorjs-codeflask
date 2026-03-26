@@ -22,6 +22,7 @@
   import icon from './codeflask.svg';
 
   import Prism from 'prismjs';
+  import MarkdownIt from 'markdown-it';
   import { IconClipboard } from '@codexteam/icons';
 
   // import "prismjs-components-importer/esm"; // ALL - Massivly Increases Bundle size!
@@ -36,6 +37,34 @@
   import CodeFlask from 'codeflask';
 
   const ICON_CHECK = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/></svg>';
+  const MARKDOWN_VIEW_LANGUAGE = 'markdown-view';
+
+  const escapeHtml = (value) => {
+    return String(value === undefined || value === null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const markdownRenderer = new MarkdownIt({
+    html: false,
+    linkify: true,
+    breaks: true,
+    highlight: (str, lang) => {
+      const normalizedLang = typeof lang === 'string' ? lang.trim().toLowerCase() : '';
+
+      if (normalizedLang && Prism.languages && Prism.languages[normalizedLang]) {
+        try {
+          const highlighted = Prism.highlight(str, Prism.languages[normalizedLang], normalizedLang);
+          return `<pre class="editorjs-codeFlask_MarkdownCode language-${normalizedLang}"><code class="language-${normalizedLang}">${highlighted}</code></pre>`;
+        } catch (_) {}
+      }
+
+      return `<pre class="editorjs-codeFlask_MarkdownCode"><code>${escapeHtml(str)}</code></pre>`;
+    }
+  });
 
 
 
@@ -84,6 +113,9 @@
      this._langChooserListEl = null;
      this._removeLangChooserListeners = null;
      this._availableLanguages = null;
+     this._editorHostEl = null;
+     this._markdownPreviewEl = null;
+     this._resizeEditorHeightDebounced = this._debounce((length) => this._updateEditorHeight(length));
  
      this._CSS = {
        block: this.api.styles.block,
@@ -149,7 +181,13 @@
     this._element.classList.add('editorjs-codeFlask_Wrapper')
     let editorElem = document.createElement('div');
     editorElem.classList.add('editorjs-codeFlask_Editor')
+    this._editorHostEl = editorElem;
     this._element.appendChild(editorElem)
+
+    let markdownPreviewElem = document.createElement('div');
+    markdownPreviewElem.classList.add('editorjs-codeFlask_MarkdownPreview');
+    this._markdownPreviewEl = markdownPreviewElem;
+    this._element.appendChild(markdownPreviewElem)
 
    // 编辑模式：右上角显示语言选择 + COPY
    // 只读模式：右上角只显示 COPY（仍可复制）
@@ -160,7 +198,7 @@
    this._element.appendChild(this._buildTopRightControls({ showLang: !this.readOnly }));
 
     this.data.editorInstance = new CodeFlask(editorElem, { 
-      language: this.data.language, 
+      language: this._isMarkdownViewMode() ? 'markdown' : this.data.language, 
       lineNumbers : this.data.showlinenumbers,
       readonly : this.readOnly,
       // 由宿主（QNotes）CSS 变量控制主题；避免 CodeFlask 注入默认浅色 token 主题
@@ -168,9 +206,11 @@
     });
 
     this.data.editorInstance.onUpdate((code) => {
+      this.data.code = code;
+      this._refreshMarkdownPreview();
 
       let _length = code.split('\n').length
-      this._debounce(this._updateEditorHeight(_length))
+      this._resizeEditorHeightDebounced(_length)
 
     });
 
@@ -180,6 +220,7 @@
       }
     } catch (_) {}
     this.data.editorInstance.updateCode(this.data.code);
+    this._applyDisplayMode();
 
     return this._element
    }
@@ -187,7 +228,12 @@
   _updateEditorHeight(length){
 
     // 语言按钮为覆盖层，不应占用额外高度
-    let _height = (length * 21) + 10
+    let _height;
+    if (this._isMarkdownViewMode() && this._markdownPreviewEl) {
+      _height = this._markdownPreviewEl.scrollHeight + 12;
+    } else {
+      _height = (length * 21) + 10
+    }
     if (_height < 60){ _height = 60 }
 
     this._element.style.height = _height + 'px';
@@ -232,7 +278,11 @@
       }
     } catch (_) {}
 
-    this.data.editorInstance.updateLanguage(this.data.language)
+    if (!this._isMarkdownViewMode()) {
+      this.data.editorInstance.updateLanguage(this.data.language)
+    }
+
+    this._applyDisplayMode();
   }
 
   _getAvailableLanguages = () => {
@@ -252,8 +302,77 @@
       });
 
     raw.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    raw.unshift(MARKDOWN_VIEW_LANGUAGE);
     this._availableLanguages = raw;
     return this._availableLanguages;
+  }
+
+  _isMarkdownViewMode = () => {
+    return this.data.language === MARKDOWN_VIEW_LANGUAGE;
+  }
+
+  _looksLikeMarkdown = (code) => {
+    const text = String(code === undefined || code === null ? '' : code);
+
+    if (!text.trim()) return true;
+
+    const markers = [
+      /^\s{0,3}#{1,6}\s+/m,
+      /^\s*([-*+])\s+/m,
+      /^\s*\d+\.\s+/m,
+      /^\s*>\s+/m,
+      /```[\s\S]*```/m,
+      /`[^`\n]+`/,
+      /\[[^\]]+\]\([^)]+\)/,
+      /!\[[^\]]*\]\([^)]+\)/,
+      /^\s*\|.+\|\s*$/m,
+      /^\s*([-*_]\s*){3,}$/m
+    ];
+
+    return markers.some((pattern) => pattern.test(text));
+  }
+
+  _refreshMarkdownPreview = () => {
+    if (!this._markdownPreviewEl) return;
+
+    const code = (this.data && this.data.editorInstance && typeof this.data.editorInstance.getCode === 'function')
+      ? this.data.editorInstance.getCode()
+      : this.data.code;
+
+    if (!code || !String(code).trim()) {
+      this._markdownPreviewEl.innerHTML = '<div class="editorjs-codeFlask_MarkdownEmpty">Markdown preview is empty.</div>';
+      return;
+    }
+
+    if (!this._looksLikeMarkdown(code)) {
+      this._markdownPreviewEl.innerHTML = `
+        <div class="editorjs-codeFlask_MarkdownNotice">
+          Current content does not look like Markdown. Showing plain text fallback instead.
+        </div>
+        <pre class="editorjs-codeFlask_MarkdownFallback"><code>${escapeHtml(code)}</code></pre>
+      `;
+      return;
+    }
+
+    this._markdownPreviewEl.innerHTML = markdownRenderer.render(code);
+  }
+
+  _applyDisplayMode = () => {
+    this._refreshMarkdownPreview();
+
+    const isMarkdownView = this._isMarkdownViewMode();
+    if (this._element) {
+      this._element.classList.toggle('editorjs-codeFlask_Wrapper--markdown-view', isMarkdownView);
+    }
+    if (this._editorHostEl) {
+      this._editorHostEl.style.display = isMarkdownView ? 'none' : '';
+    }
+    if (this._markdownPreviewEl) {
+      this._markdownPreviewEl.style.display = isMarkdownView ? 'block' : 'none';
+    }
+
+    const lineCount = String(this.data.code || '').split('\n').length;
+    this._updateEditorHeight(lineCount);
   }
 
   _buildLangButton = () => {
@@ -550,9 +669,10 @@
  
      // 如果已经渲染过实例，则同步更新编辑器里的代码
      if (this.data.editorInstance && typeof this.data.editorInstance.updateCode === 'function') {
-       this.data.editorInstance.updateCode(this.data.code);
-     }
-   }
+      this.data.editorInstance.updateCode(this.data.code);
+    }
+    this._refreshMarkdownPreview();
+  }
  
    /**
     * Returns true to notify the core that read-only mode is supported
