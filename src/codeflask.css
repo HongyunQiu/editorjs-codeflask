@@ -74,6 +74,27 @@
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview blockquote,
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview table {
 	margin: 0 0 0.9em;
+	width: 100%;
+	border-collapse: collapse;
+	border-spacing: 0;
+	font-size: 0.95em;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview th,
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview td {
+	padding: 8px 10px;
+	border: 1px solid var(--border, rgba(148, 163, 184, 0.6));
+	text-align: left;
+	vertical-align: top;
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview th {
+	font-weight: 600;
+	background: var(--qnotes-code-gutter-bg);
+}
+
+.editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview tbody tr:nth-child(even) {
+	background: color-mix(in srgb, var(--qnotes-code-gutter-bg) 45%, transparent);
 }
 
 .editorjs-codeFlask_Wrapper .editorjs-codeFlask_MarkdownPreview a {
